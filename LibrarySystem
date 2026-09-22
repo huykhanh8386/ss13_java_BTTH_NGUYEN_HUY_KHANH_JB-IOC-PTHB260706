@@ -1,0 +1,156 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+public class LibrarySystem {
+    private List<Book> bookList = new ArrayList<>();
+    private Set<String> isbnSet = new HashSet<>();
+    private Map<String, Integer> borrowCountMap = new HashMap<>();
+    private Scanner scanner = new Scanner(System.in);
+    public void run() {
+        int choice;
+        do {
+            displayMenu();
+            System.out.print("Chọn chức năng (1-6): ");
+            while (!scanner.hasNextInt()) {
+                System.out.println("Vui lòng nhập số từ 1 đến 6!");
+                scanner.nextLine();
+                System.out.print("Chọn lại: ");
+            }
+            choice = scanner.nextInt();
+            scanner.nextLine();
+            switch (choice) {
+                case 1:
+                    addBook();
+                    break;
+                case 2:
+                    displayBooks();
+                    break;
+                case 3:
+                    borrowBook();
+                    break;
+                case 4:
+                    sortByYear();
+                    break;
+                case 5:
+                    displayMostBorrowedBook();
+                    break;
+                case 6:
+                    System.out.println("Đã thoát chương trình!");
+                    break;
+                default:
+                    System.out.println("Lựa chọn không hợp lệ!");
+            }
+        } while (choice != 6);
+    }
+    private void displayMenu() {
+        System.out.println();
+        System.out.println(" HỆ THỐNG QUẢN LÝ THƯ VIỆN ĐA CẤU TRÚC - RIKKEI LIBRARY");
+        System.out.println("1. Thêm sách");
+        System.out.println("2. Danh sách Sách");
+        System.out.println("3. Ghi nhận mượn sách");
+        System.out.println("4. Sắp xếp theo Năm");
+        System.out.println("5. Thống kê");
+        System.out.println("6. Thoát");
+    }
+    private void addBook() {
+        System.out.println();
+        System.out.println("===== THÊM SÁCH MỚI =====");
+        System.out.print("Nhập ISBN: ");
+        String isbn = scanner.nextLine().trim();
+        if (isbn.isEmpty()) {
+            System.out.println("[Lỗi] ISBN không được để trống!");
+            return;
+        }
+        if (isbnSet.contains(isbn)) {
+            System.out.println("[Lỗi] ISBN đã tồn tại trong thư viện!");
+            return;
+        }
+        System.out.print("Nhập tiêu đề: ");
+        String title = scanner.nextLine().trim();
+        System.out.print("Nhập tác giả: ");
+        String author = scanner.nextLine().trim();
+        System.out.print("Nhập năm xuất bản: ");
+        while (!scanner.hasNextInt()) {
+            System.out.println("Năm xuất bản phải là số nguyên!");
+            scanner.nextLine();
+            System.out.print("Nhập lại năm: ");
+        }
+        int year = scanner.nextInt();
+        scanner.nextLine();
+        Book book = new Book(isbn, title, author, year);
+        bookList.add(book);
+        isbnSet.add(isbn);
+        borrowCountMap.put(isbn, 0);
+        System.out.println("[Thành công] Sách '" + title + "' đã được nạp vào hệ thống!");
+    }
+    private void displayBooks() {
+        System.out.println();
+        if (bookList.isEmpty()) {
+            System.out.println("Thư viện chưa có sách!");
+            return;
+        }
+        System.out.println("|                     DANH SÁCH SÁCH THƯ VIỆN RIKKEI LIBRARY                              |");
+        System.out.printf("| %-15s | %-25s | %-20s | %-6s | %-10s |\n", "ISBN", "Tiêu đề", "Tác giả", "Năm", "Lượt mượn");
+        for (Book book : bookList) {
+            int borrowCount = borrowCountMap.getOrDefault(book.getIsbn(), 0);
+            System.out.printf("| %-15s | %-25s | %-20s | %-6d | %-7d lượt |\n", book.getIsbn(), book.getTitle(), book.getAuthor(), book.getYear(), borrowCount);
+        }
+    }
+    private void borrowBook() {
+        System.out.println();
+        System.out.println("===== GHI NHẬN MƯỢN SÁCH =====");
+        System.out.print("Nhập ISBN sách cần mượn: ");
+        String isbn = scanner.nextLine().trim();
+        if (!isbnSet.contains(isbn)) {
+            System.out.println("[Lỗi] Không tìm thấy sách có ISBN: " + isbn);
+            return;
+        }
+        int currentCount = borrowCountMap.getOrDefault(isbn, 0);
+        borrowCountMap.put(isbn, currentCount + 1);
+        System.out.println("[Thành công] Đã ghi nhận mượn sách!");
+        System.out.println("Tổng lượt mượn hiện tại: " + borrowCountMap.get(isbn));
+    }
+    private void sortByYear() {
+        if (bookList.isEmpty()) {
+            System.out.println("Danh sách sách đang rỗng!");
+            return;
+        }
+        Collections.sort(bookList, new YearComparator());
+        System.out.println("[Thành công] Đã sắp xếp theo năm xuất bản giảm dần!");
+        displayBooks();
+    }
+    private void displayMostBorrowedBook() {
+        if (borrowCountMap.isEmpty()) {
+            System.out.println("Chưa có dữ liệu sách!");
+            return;
+        }
+        String maxIsbn = null;
+        int maxBorrow = -1;
+        for (Map.Entry<String, Integer> entry : borrowCountMap.entrySet()) {
+            if (entry.getValue() > maxBorrow) {
+                maxBorrow = entry.getValue();
+                maxIsbn = entry.getKey();
+            }
+        }
+        Book mostBorrowedBook = null;
+        for (Book book : bookList) {
+            if (book.getIsbn().equals(maxIsbn)) {
+                mostBorrowedBook = book;
+                break;
+            }
+        }
+        if (mostBorrowedBook != null) {
+            System.out.println();
+            System.out.println("===== THỐNG KÊ =====");
+            System.out.println("-> SÁCH MƯỢN NHIỀU NHẤT: " + mostBorrowedBook.getTitle() + " (" + maxBorrow + " lượt)");
+            System.out.println("ISBN: " + mostBorrowedBook.getIsbn());
+            System.out.println("Tác giả: " + mostBorrowedBook.getAuthor());
+            System.out.println("Năm xuất bản: " + mostBorrowedBook.getYear());
+        }
+    }
+}
